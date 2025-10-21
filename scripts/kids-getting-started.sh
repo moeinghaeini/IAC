@@ -45,11 +45,10 @@ echo "What would you like to build first?"
 echo ""
 echo "1. 🍕 Pizza Shop (Easiest - Great for beginners!)"
 echo "2. 🎨 Art Gallery (Medium - Beautiful and fun!)"
-echo "3. 🎪 Virtual Circus (Advanced - For when you're ready for a challenge!)"
-echo "4. 🚀 Space Station (Expert - Multi-service architecture!)"
+echo "3. 🚀 Space Station (Advanced - For when you're ready for a challenge!)"
 echo ""
 
-read -p "Enter your choice (1, 2, 3, or 4): " choice
+read -p "Enter your choice (1, 2, or 3): " choice
 
 case $choice in
     1)
@@ -68,13 +67,6 @@ case $choice in
         ;;
     3)
         echo ""
-        echo "🎪 Awesome! Let's build a Virtual Circus! 🎪"
-        echo ""
-        cd playground/circus/
-        echo "📁 We're now in the circus directory!"
-        ;;
-    4)
-        echo ""
         echo "🚀 Excellent! Let's build a Space Station! 🚀"
         echo ""
         cd playground/space-station/
@@ -83,7 +75,7 @@ case $choice in
     *)
         echo ""
         echo "❌ That's not a valid choice. Let's try again!"
-        echo "Please run this script again and choose 1, 2, 3, or 4."
+        echo "Please run this script again and choose 1, 2, or 3."
         exit 1
         ;;
 esac

@@ -87,8 +87,8 @@ Build a website for a pizza delivery service!
 ### 🎨 Art Gallery
 Create an online gallery to showcase digital art!
 
-### 🎪 Virtual Circus
-Set up a complex multi-server circus with performers and audience!
+### 🚀 Space Station
+Set up a complex space station with multiple systems and monitoring!
 
 ## 🛡️ Safety Rules (Very Important!)
 

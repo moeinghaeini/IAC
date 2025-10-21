@@ -2,48 +2,27 @@
 # 🚀 SPACE STATION OUTPUTS
 # =============================================================================
 
-output "load_balancer_dns" {
-  description = "DNS name of the load balancer"
-  value       = aws_lb.space_station.dns_name
-}
-
-output "load_balancer_zone_id" {
-  description = "Zone ID of the load balancer"
-  value       = aws_lb.space_station.zone_id
+output "s3_bucket_name" {
+  description = "Name of the S3 bucket for the space station website"
+  value       = aws_s3_bucket.space_station.bucket
 }
 
 output "website_url" {
   description = "URL of the space station website"
-  value       = "http://${aws_lb.space_station.dns_name}"
+  value       = "http://${aws_s3_bucket.space_station.bucket}.s3-website-us-west-2.amazonaws.com"
 }
 
-output "database_endpoint" {
-  description = "RDS instance endpoint"
-  value       = aws_db_instance.space_station.endpoint
-  sensitive   = true
+output "ec2_instance_id" {
+  description = "ID of the space station server"
+  value       = aws_instance.space_station.id
 }
 
-output "database_port" {
-  description = "RDS instance port"
-  value       = aws_db_instance.space_station.port
+output "ec2_public_ip" {
+  description = "Public IP of the space station server"
+  value       = aws_instance.space_station.public_ip
 }
 
-output "s3_bucket_name" {
-  description = "Name of the S3 bucket for data storage"
-  value       = aws_s3_bucket.space_station_data.bucket
-}
-
-output "dashboard_url" {
-  description = "URL of the CloudWatch dashboard"
-  value       = "https://us-west-2.console.aws.amazon.com/cloudwatch/home?region=us-west-2#dashboards:name=${aws_cloudwatch_dashboard.space_station.dashboard_name}"
-}
-
-output "vpc_id" {
-  description = "ID of the VPC"
-  value       = aws_vpc.space_station.id
-}
-
-output "auto_scaling_group_name" {
-  description = "Name of the Auto Scaling Group"
-  value       = aws_autoscaling_group.space_station.name
+output "ec2_public_dns" {
+  description = "Public DNS of the space station server"
+  value       = aws_instance.space_station.public_dns
 }

@@ -32,8 +32,8 @@ Use this checklist to track your progress as you become a little cloud architect
 - [ ] 🕒 Change the gallery hours
 - [ ] 🧹 Clean up the gallery resources
 
-### 🎪 Advanced Adventures (Chapter 4)
-- [ ] 🎪 Build the Virtual Circus (when ready!)
+### 🚀 Advanced Adventures (Chapter 4)
+- [ ] 🚀 Build the Space Station (when ready!)
 - [ ] 🧩 Create your own custom project
 - [ ] 📝 Write your own Terraform code
 - [ ] 🔧 Modify existing examples
@@ -82,7 +82,7 @@ Collect these badges as you complete different challenges!
 - [ ] 🧹 **Cleanup Champion** - Always remember to clean up your resources
 
 ### 🎯 Intermediate Badges
-- [ ] 🎪 **Circus Director** - Built the Virtual Circus
+- [ ] 🚀 **Space Architect** - Built the Space Station
 - [ ] 🧩 **Module Master** - Created your own Terraform module
 - [ ] 🎨 **Creative Architect** - Built something completely original
 - [ ] 🛡️ **Safety Expert** - Always follow safety best practices
