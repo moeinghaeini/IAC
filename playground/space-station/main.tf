@@ -1,7 +1,7 @@
 # =============================================================================
-# 🚀 SPACE STATION - ADVANCED TERRAFORM EXAMPLE! 🚀
+# 🚀 SPACE STATION - ADVANCED MULTI-SERVICE ARCHITECTURE! 🚀
 # =============================================================================
-# This file demonstrates advanced Terraform features for experienced learners!
+# This creates a complex space station with multiple services and load balancing!
 
 terraform {
   required_version = ">= 1.9"
@@ -18,9 +18,8 @@ terraform {
   }
 }
 
-# Configure AWS provider
 provider "aws" {
-  region = var.aws_region
+  region = "us-west-2"
   
   default_tags {
     tags = {
@@ -33,74 +32,7 @@ provider "aws" {
 }
 
 # =============================================================================
-# 📋 DATA SOURCES
-# =============================================================================
-
-# Find the latest Amazon Linux 2 AMI
-data "aws_ami" "amazon_linux" {
-  most_recent = true
-  owners      = ["amazon"]
-
-  filter {
-    name   = "name"
-    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
-  }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-}
-
-# Get available AZs in the region
-data "aws_availability_zones" "available" {
-  state = "available"
-}
-
-# =============================================================================
-# 🌌 LOCAL VALUES (ADVANCED FEATURE!)
-# =============================================================================
-# Locals help us create complex expressions and reuse them
-
-locals {
-  # Create a map of space station modules
-  space_modules = {
-    "command-center" = {
-      instance_type = "t3.small"
-      port          = 8080
-      description   = "Main command and control center"
-    }
-    "life-support" = {
-      instance_type = "t3.micro"
-      port          = 8081
-      description   = "Life support systems monitoring"
-    }
-    "navigation" = {
-      instance_type = "t3.micro"
-      port          = 8082
-      description   = "Navigation and guidance systems"
-    }
-    "communications" = {
-      instance_type = "t3.micro"
-      port          = 8083
-      description   = "Communication systems"
-    }
-  }
-  
-  # Create a list of all module names
-  module_names = keys(local.space_modules)
-  
-  # Common tags for all resources
-  common_tags = {
-    Project     = "Space-Station"
-    Environment = "learning"
-    ManagedBy   = "Terraform"
-    Owner       = "Space-Architect"
-  }
-}
-
-# =============================================================================
-# 🌐 VPC AND NETWORKING
+# 🌌 VPC AND NETWORKING
 # =============================================================================
 
 # Create VPC for our space station
@@ -109,81 +41,134 @@ resource "aws_vpc" "space_station" {
   enable_dns_hostnames = true
   enable_dns_support   = true
 
-  tags = merge(local.common_tags, {
-    Name = "Space-Station-VPC"
-  })
+  tags = {
+    Name = "Space Station VPC"
+  }
 }
 
 # Internet Gateway
 resource "aws_internet_gateway" "space_station" {
   vpc_id = aws_vpc.space_station.id
 
-  tags = merge(local.common_tags, {
-    Name = "Space-Station-IGW"
-  })
+  tags = {
+    Name = "Space Station IGW"
+  }
 }
 
-# Public Subnets (using for_each - advanced feature!)
+# Public Subnets
 resource "aws_subnet" "public" {
-  for_each = toset(data.aws_availability_zones.available.names)
+  count = 3
 
   vpc_id                  = aws_vpc.space_station.id
-  cidr_block              = "10.0.${index(data.aws_availability_zones.available.names, each.key) + 1}.0/24"
-  availability_zone       = each.key
+  cidr_block              = "10.0.${count.index + 1}.0/24"
+  availability_zone       = data.aws_availability_zones.available.names[count.index]
   map_public_ip_on_launch = true
 
-  tags = merge(local.common_tags, {
-    Name = "Space-Station-Public-${each.key}"
+  tags = {
+    Name = "Space Station Public Subnet ${count.index + 1}"
     Type = "Public"
-  })
+  }
 }
 
 # Private Subnets
 resource "aws_subnet" "private" {
-  for_each = toset(data.aws_availability_zones.available.names)
+  count = 3
 
   vpc_id            = aws_vpc.space_station.id
-  cidr_block        = "10.0.${index(data.aws_availability_zones.available.names, each.key) + 10}.0/24"
-  availability_zone = each.key
+  cidr_block        = "10.0.${count.index + 10}.0/24"
+  availability_zone = data.aws_availability_zones.available.names[count.index]
 
-  tags = merge(local.common_tags, {
-    Name = "Space-Station-Private-${each.key}"
+  tags = {
+    Name = "Space Station Private Subnet ${count.index + 1}"
     Type = "Private"
-  })
+  }
+}
+
+# Get available AZs
+data "aws_availability_zones" "available" {
+  state = "available"
 }
 
 # =============================================================================
-# 🔒 SECURITY GROUPS (DYNAMIC BLOCKS!)
+# 🚀 LOAD BALANCER
 # =============================================================================
 
-# Security group for space station modules
-resource "aws_security_group" "space_station" {
-  name_prefix = "space-station-"
-  description = "Security group for space station modules"
+# Application Load Balancer
+resource "aws_lb" "space_station" {
+  name               = "space-station-alb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.alb.id]
+  subnets            = aws_subnet.public[*].id
+
+  enable_deletion_protection = false
+
+  tags = {
+    Name = "Space Station Load Balancer"
+  }
+}
+
+# Target Group for web servers
+resource "aws_lb_target_group" "web_servers" {
+  name     = "space-station-web"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = aws_vpc.space_station.id
+
+  health_check {
+    enabled             = true
+    healthy_threshold   = 2
+    interval            = 30
+    matcher             = "200"
+    path                = "/"
+    port                = "traffic-port"
+    protocol            = "HTTP"
+    timeout             = 5
+    unhealthy_threshold = 2
+  }
+
+  tags = {
+    Name = "Space Station Web Servers"
+  }
+}
+
+# Load Balancer Listener
+resource "aws_lb_listener" "space_station" {
+  load_balancer_arn = aws_lb.space_station.arn
+  port              = "80"
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.web_servers.arn
+  }
+}
+
+# =============================================================================
+# 🛡️ SECURITY GROUPS
+# =============================================================================
+
+# ALB Security Group
+resource "aws_security_group" "alb" {
+  name_prefix = "space-station-alb-"
   vpc_id      = aws_vpc.space_station.id
 
-  # Dynamic ingress blocks for each module port
-  dynamic "ingress" {
-    for_each = local.space_modules
-    content {
-      from_port   = ingress.value.port
-      to_port     = ingress.value.port
-      protocol    = "tcp"
-      cidr_blocks = ["0.0.0.0/0"]
-      description = "Allow access to ${ingress.key} module"
-    }
-  }
-
-  # Allow SSH access
   ingress {
-    from_port   = 22
-    to_port     = 22
+    from_port   = 80
+    to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
-    description = "SSH access"
+    description = "HTTP traffic"
   }
 
-  # Allow all outbound traffic
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "HTTPS traffic"
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -192,52 +177,212 @@ resource "aws_security_group" "space_station" {
     description = "All outbound traffic"
   }
 
-  tags = merge(local.common_tags, {
-    Name = "Space-Station-SG"
-  })
+  tags = {
+    Name = "Space Station ALB Security Group"
+  }
+}
+
+# Web Server Security Group
+resource "aws_security_group" "web_servers" {
+  name_prefix = "space-station-web-"
+  vpc_id      = aws_vpc.space_station.id
+
+  ingress {
+    from_port       = 80
+    to_port         = 80
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb.id]
+    description     = "HTTP from ALB"
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "All outbound traffic"
+  }
+
+  tags = {
+    Name = "Space Station Web Servers Security Group"
+  }
+}
+
+# Database Security Group
+resource "aws_security_group" "database" {
+  name_prefix = "space-station-db-"
+  vpc_id      = aws_vpc.space_station.id
+
+  ingress {
+    from_port       = 3306
+    to_port         = 3306
+    protocol        = "tcp"
+    security_groups = [aws_security_group.web_servers.id]
+    description     = "MySQL from web servers"
+  }
+
+  tags = {
+    Name = "Space Station Database Security Group"
+  }
 }
 
 # =============================================================================
-# 🚀 SPACE STATION MODULES (FOR_EACH LOOP!)
+# 🖥️ AUTO SCALING GROUP
 # =============================================================================
 
-# Create EC2 instances for each space station module
-resource "aws_instance" "space_modules" {
-  for_each = local.space_modules
+# Launch Template
+resource "aws_launch_template" "space_station" {
+  name_prefix   = "space-station-"
+  image_id      = data.aws_ami.amazon_linux.id
+  instance_type = "t3.micro"
 
-  ami           = data.aws_ami.amazon_linux.id
-  instance_type = each.value.instance_type
-  subnet_id     = values(aws_subnet.public)[0].id  # Use first public subnet
+  vpc_security_group_ids = [aws_security_group.web_servers.id]
 
-  vpc_security_group_ids = [aws_security_group.space_station.id]
+  user_data = base64encode(<<-EOF
+              #!/bin/bash
+              yum update -y
+              yum install -y httpd
+              systemctl start httpd
+              systemctl enable httpd
+              
+              # Create space station webpage
+              cat > /var/www/html/index.html << 'EOL'
+              <!DOCTYPE html>
+              <html>
+              <head>
+                  <title>🚀 Space Station Control Center 🚀</title>
+                  <style>
+                      body { 
+                          font-family: 'Courier New', monospace; 
+                          text-align: center; 
+                          background: linear-gradient(45deg, #0a0a0a, #1a1a2e, #16213e);
+                          color: #00ffff;
+                          margin: 0;
+                          padding: 20px;
+                      }
+                      .container {
+                          max-width: 1200px;
+                          margin: 0 auto;
+                          background: rgba(0,0,0,0.8);
+                          padding: 30px;
+                          border-radius: 15px;
+                          border: 2px solid #00ffff;
+                      }
+                      .header { font-size: 3em; margin-bottom: 20px; }
+                      .status { 
+                          background: rgba(0,255,255,0.1); 
+                          padding: 15px; 
+                          margin: 10px; 
+                          border-radius: 10px;
+                          border: 1px solid #00ffff;
+                      }
+                      .system { color: #00ff00; }
+                      .warning { color: #ffff00; }
+                      .critical { color: #ff0000; }
+                  </style>
+              </head>
+              <body>
+                  <div class="container">
+                      <h1 class="header">🚀 Space Station Control Center 🚀</h1>
+                      
+                      <div class="status">
+                          <h2>🌌 Station Status</h2>
+                          <p class="system">✅ Life Support Systems: OPERATIONAL</p>
+                          <p class="system">✅ Navigation Systems: OPERATIONAL</p>
+                          <p class="system">✅ Communication Array: OPERATIONAL</p>
+                          <p class="system">✅ Power Grid: OPERATIONAL</p>
+                      </div>
+                      
+                      <div class="status">
+                          <h2>👨‍🚀 Crew Status</h2>
+                          <p class="system">👨‍🚀 Captain: On Duty</p>
+                          <p class="system">👩‍🚀 Engineer: Monitoring Systems</p>
+                          <p class="system">👨‍🚀 Navigator: Charting Course</p>
+                      </div>
+                      
+                      <div class="status">
+                          <h2>🛰️ Mission Status</h2>
+                          <p class="system">🎯 Current Mission: Deep Space Exploration</p>
+                          <p class="system">📍 Location: Alpha Centauri System</p>
+                          <p class="system">⏰ Mission Duration: 2.5 years</p>
+                      </div>
+                      
+                      <div class="status">
+                          <h2>🔬 Research Projects</h2>
+                          <p class="system">🧪 Alien Life Forms: In Progress</p>
+                          <p class="system">🌌 Dark Matter Study: Active</p>
+                          <p class="system">🚀 Advanced Propulsion: Testing</p>
+                      </div>
+                      
+                      <p><em>Built with Terraform by a space architect! 🌟</em></p>
+                  </div>
+              </body>
+              </html>
+              EOL
+              EOF
+  )
 
-  # User data script for each module
-  user_data = base64encode(templatefile("${path.module}/user_data/${each.key}.sh", {
-    module_name = each.key
-    port        = each.value.port
-    description = each.value.description
-  }))
+  tag_specifications {
+    resource_type = "instance"
+    tags = {
+      Name = "Space Station Web Server"
+    }
+  }
+}
 
-  tags = merge(local.common_tags, {
-    Name        = "Space-Station-${title(each.key)}"
-    Module      = each.key
-    Port        = each.value.port
-    Description = each.value.description
-  })
+# Auto Scaling Group
+resource "aws_autoscaling_group" "space_station" {
+  name                = "space-station-asg"
+  vpc_zone_identifier = aws_subnet.private[*].id
+  target_group_arns   = [aws_lb_target_group.web_servers.arn]
+  health_check_type   = "ELB"
+  health_check_grace_period = 300
+
+  min_size         = 2
+  max_size         = 6
+  desired_capacity = 3
+
+  launch_template {
+    id      = aws_launch_template.space_station.id
+    version = "$Latest"
+  }
+
+  tag {
+    key                 = "Name"
+    value               = "Space Station Web Server"
+    propagate_at_launch = true
+  }
+}
+
+# Auto Scaling Policy
+resource "aws_autoscaling_policy" "scale_up" {
+  name                   = "space-station-scale-up"
+  scaling_adjustment     = 1
+  adjustment_type        = "ChangeInCapacity"
+  cooldown               = 300
+  autoscaling_group_name = aws_autoscaling_group.space_station.name
+}
+
+resource "aws_autoscaling_policy" "scale_down" {
+  name                   = "space-station-scale-down"
+  scaling_adjustment     = -1
+  adjustment_type        = "ChangeInCapacity"
+  cooldown               = 300
+  autoscaling_group_name = aws_autoscaling_group.space_station.name
 }
 
 # =============================================================================
-# 🗄️ DATABASE FOR SPACE STATION DATA
+# 🗄️ DATABASE
 # =============================================================================
 
 # RDS Subnet Group
 resource "aws_db_subnet_group" "space_station" {
   name       = "space-station-db-subnet-group"
-  subnet_ids = values(aws_subnet.private)[*].id
+  subnet_ids = aws_subnet.private[*].id
 
-  tags = merge(local.common_tags, {
-    Name = "Space-Station-DB-Subnet-Group"
-  })
+  tags = {
+    Name = "Space Station DB Subnet Group"
+  }
 }
 
 # RDS Instance
@@ -251,13 +396,12 @@ resource "aws_db_instance" "space_station" {
   allocated_storage     = 20
   max_allocated_storage = 100
   storage_type          = "gp2"
-  storage_encrypted     = true
   
   db_name  = "spacestation"
-  username = "spaceadmin"
-  password = random_password.db_password.result
+  username = "admin"
+  password = "SpaceStation2024!"
   
-  vpc_security_group_ids = [aws_security_group.space_station.id]
+  vpc_security_group_ids = [aws_security_group.database.id]
   db_subnet_group_name   = aws_db_subnet_group.space_station.name
   
   backup_retention_period = 7
@@ -265,38 +409,19 @@ resource "aws_db_instance" "space_station" {
   maintenance_window     = "sun:04:00-sun:05:00"
   
   skip_final_snapshot = true
-  deletion_protection = false
-
-  tags = merge(local.common_tags, {
-    Name = "Space-Station-Database"
-  })
+  
+  tags = {
+    Name = "Space Station Database"
+  }
 }
 
 # =============================================================================
-# 🔐 SECURITY AND RANDOM VALUES
+# 📊 MONITORING
 # =============================================================================
-
-# Generate random password for database
-resource "random_password" "db_password" {
-  length  = 16
-  special = true
-}
-
-# =============================================================================
-# 📊 CLOUDWATCH MONITORING
-# =============================================================================
-
-# CloudWatch Log Group
-resource "aws_cloudwatch_log_group" "space_station" {
-  name              = "/aws/space-station/application"
-  retention_in_days = 14
-
-  tags = local.common_tags
-}
 
 # CloudWatch Dashboard
 resource "aws_cloudwatch_dashboard" "space_station" {
-  dashboard_name = "Space-Station-Dashboard"
+  dashboard_name = "space-station-dashboard"
 
   dashboard_body = jsonencode({
     widgets = [
@@ -309,17 +434,34 @@ resource "aws_cloudwatch_dashboard" "space_station" {
 
         properties = {
           metrics = [
-            for module_name in local.module_names : [
-              "AWS/EC2",
-              "CPUUtilization",
-              "InstanceId",
-              aws_instance.space_modules[module_name].id
-            ]
+            ["AWS/ApplicationELB", "TargetResponseTime", "LoadBalancer", aws_lb.space_station.arn_suffix],
+            [".", "RequestCount", ".", "."],
+            [".", "HTTPCode_Target_2XX_Count", ".", "."]
           ]
-          period = 300
-          stat   = "Average"
-          region = var.aws_region
-          title  = "Space Station Module CPU Usage"
+          view    = "timeSeries"
+          stacked = false
+          region  = "us-west-2"
+          title   = "🚀 Space Station Performance"
+          period  = 300
+        }
+      },
+      {
+        type   = "metric"
+        x      = 12
+        y      = 0
+        width  = 12
+        height = 6
+
+        properties = {
+          metrics = [
+            ["AWS/AutoScaling", "GroupDesiredCapacity", "AutoScalingGroupName", aws_autoscaling_group.space_station.name],
+            [".", "GroupInServiceInstances", ".", "."]
+          ]
+          view    = "timeSeries"
+          stacked = false
+          region  = "us-west-2"
+          title   = "🔄 Auto Scaling Status"
+          period  = 300
         }
       }
     ]
@@ -327,32 +469,36 @@ resource "aws_cloudwatch_dashboard" "space_station" {
 }
 
 # =============================================================================
-# 📤 OUTPUTS
+# 📦 S3 BUCKET FOR DATA STORAGE
 # =============================================================================
 
-# Output information about our space station
-output "space_station_info" {
-  description = "Information about the space station modules"
-  value = {
-    vpc_id = aws_vpc.space_station.id
-    modules = {
-      for name, instance in aws_instance.space_modules : name => {
-        instance_id = instance.id
-        public_ip   = instance.public_ip
-        private_ip  = instance.private_ip
-        port        = local.space_modules[name].port
-        description = local.space_modules[name].description
-      }
-    }
-    database_endpoint = aws_db_instance.space_station.endpoint
-    dashboard_url     = "https://${var.aws_region}.console.aws.amazon.com/cloudwatch/home?region=${var.aws_region}#dashboards:name=${aws_cloudwatch_dashboard.space_station.dashboard_name}"
+resource "aws_s3_bucket" "space_station_data" {
+  bucket = "space-station-data-${random_id.bucket_suffix.hex}"
+
+  tags = {
+    Name = "Space Station Data Storage"
   }
 }
 
-# Output the space station access URLs
-output "space_station_urls" {
-  description = "URLs to access space station modules"
-  value = {
-    for name, instance in aws_instance.space_modules : name => "http://${instance.public_ip}:${local.space_modules[name].port}"
+resource "random_id" "bucket_suffix" {
+  byte_length = 4
+}
+
+# =============================================================================
+# 📋 DATA SOURCES
+# =============================================================================
+
+data "aws_ami" "amazon_linux" {
+  most_recent = true
+  owners      = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
   }
 }
