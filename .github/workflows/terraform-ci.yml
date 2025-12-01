@@ -40,7 +40,7 @@ jobs:
       working-directory: ./playground/pizza-shop
       
     - name: "🔍 Terraform Plan"
-      if: ${{ secrets.AWS_ACCESS_KEY_ID != '' }}
+      if: ${{ secrets.AWS_ACCESS_KEY_ID }}
       run: terraform plan -no-color || echo "Terraform plan skipped - AWS credentials not configured"
       working-directory: ./playground/pizza-shop
       env:
@@ -55,7 +55,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: validate
-    if: ${{ secrets.AWS_ACCESS_KEY_ID != '' }}
+    if: ${{ secrets.AWS_ACCESS_KEY_ID }}
     
     steps:
     - name: "📥 Checkout Code"
@@ -84,7 +84,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: [validate, test]
-    if: ${{ github.ref == 'refs/heads/main' && secrets.AWS_ACCESS_KEY_ID != '' }}
+    if: ${{ github.ref == 'refs/heads/main' && secrets.AWS_ACCESS_KEY_ID }}
     
     steps:
     - name: "📥 Checkout Code"
