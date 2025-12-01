@@ -84,7 +84,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: [validate, test]
-    if: github.ref == 'refs/heads/main' && secrets.AWS_ACCESS_KEY_ID != ''
+    if: ${{ github.ref == 'refs/heads/main' && secrets.AWS_ACCESS_KEY_ID != '' }}
     
     steps:
     - name: "📥 Checkout Code"
