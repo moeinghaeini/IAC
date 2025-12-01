@@ -40,8 +40,12 @@ jobs:
       working-directory: ./playground/pizza-shop
       
     - name: "🔍 Terraform Plan"
-      if: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      run: terraform plan -no-color || echo "Terraform plan skipped - AWS credentials not configured"
+      run: |
+        if [ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ]; then
+          echo "⚠️ AWS credentials not configured - skipping terraform plan"
+          exit 0
+        fi
+        terraform plan -no-color
       working-directory: ./playground/pizza-shop
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
