@@ -55,18 +55,29 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: validate
-    if: ${{ secrets.AWS_ACCESS_KEY_ID }}
     
     steps:
     - name: "📥 Checkout Code"
       uses: actions/checkout@v4
       
+    - name: "🔍 Check AWS Credentials"
+      id: check-aws
+      run: |
+        if [ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ]; then
+          echo "aws_available=false" >> $GITHUB_OUTPUT
+          echo "⚠️ AWS credentials not configured - skipping tests"
+        else
+          echo "aws_available=true" >> $GITHUB_OUTPUT
+        fi
+      
     - name: "🔧 Setup Go"
+      if: steps.check-aws.outputs.aws_available == 'true'
       uses: actions/setup-go@v4
       with:
         go-version: '1.21'
         
     - name: "🧪 Run Terratest"
+      if: steps.check-aws.outputs.aws_available == 'true'
       run: |
         cd tests
         go mod init terraform-tests
@@ -84,18 +95,30 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: [validate, test]
-    if: ${{ github.ref == 'refs/heads/main' && secrets.AWS_ACCESS_KEY_ID }}
+    if: github.ref == 'refs/heads/main'
     
     steps:
     - name: "📥 Checkout Code"
       uses: actions/checkout@v4
       
+    - name: "🔍 Check AWS Credentials"
+      id: check-aws
+      run: |
+        if [ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ]; then
+          echo "aws_available=false" >> $GITHUB_OUTPUT
+          echo "⚠️ AWS credentials not configured - skipping deployment"
+        else
+          echo "aws_available=true" >> $GITHUB_OUTPUT
+        fi
+      
     - name: "🔧 Setup Terraform"
+      if: steps.check-aws.outputs.aws_available == 'true'
       uses: hashicorp/setup-terraform@v3
       with:
         terraform_version: "1.9.0"
         
     - name: "🚀 Deploy Pizza Shop"
+      if: steps.check-aws.outputs.aws_available == 'true'
       run: |
         cd playground/pizza-shop
         terraform init
@@ -105,6 +128,7 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         
     - name: "📤 Output Deployment Info"
+      if: steps.check-aws.outputs.aws_available == 'true'
       run: |
         cd playground/pizza-shop
         terraform output
